@@ -1,41 +1,40 @@
-import { createSlice, type PayloadAction} from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-export interface VideoState {
-    status:'idle' | 'connected' | 'searching' | 'error',
-    remoteSocketId : string | null;
-    isMicMuted:boolean,
-    isVideoOff:boolean
-
+interface VideoChatState {
+  status: 'idle' | 'searching' | 'connected' | 'failed';
+  remotePeerId: string | null;
+  error: string | null;
 }
-const initialState:VideoState = {
-status:'idle',
-remoteSocketId:null,
-isMicMuted:false,
-isVideoOff:false
-}
-const videoSlice = createSlice({
-    name:'video',
-   initialState,
-    reducers:{
 
-    setSearching:(state:VideoState)=>{
-        state.status="searching";
+const initialState: VideoChatState = {
+  status: 'idle',
+  remotePeerId: null,
+  error: null,
+};
 
+export const videochatSlice = createSlice({
+  name: 'videochat',
+  initialState,
+  reducers: {
+    setSearching: (state) => {
+      state.status = 'searching';
+      state.remotePeerId = null;
+      state.error = null;
     },
-    setMatchFound:(state:VideoState,action:PayloadAction<string>)=>{
-       state.status='connected';
-       state.remoteSocketId=action.payload;
+    setConnected: (state, action: PayloadAction<string>) => {
+      state.status = 'connected';
+      state.remotePeerId = action.payload; // Store the stranger's Socket ID
     },
-    resetVideoState:(state:VideoState)=>{
-        state.status='idle',
-        state.remoteSocketId=null;
+    setDisconnected: (state) => {
+      state.status = 'idle';
+      state.remotePeerId = null;
     },
-    toggleMic:(state:VideoState)=>{
-        state.isMicMuted = !state.isMicMuted
-    }
+    setError: (state, action: PayloadAction<string>) => {
+      state.status = 'failed';
+      state.error = action.payload;
+    },
+  },
+});
 
-
-    }
-})
-export const {setMatchFound,setSearching,resetVideoState,toggleMic} =  videoSlice.actions;
-export default videoSlice.reducer
+export const { setSearching, setConnected, setDisconnected, setError } = videochatSlice.actions;
+export default videochatSlice.reducer;

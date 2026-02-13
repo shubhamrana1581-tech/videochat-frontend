@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useAppSelector, useAppDispatch } from '../../app/hook';
-import { setSearching, resetVideoState } from './videoSlice';
+import { setDisconnected, setSearching, } from './videoSlice';
 
 const VideoPlayer: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -81,7 +81,7 @@ const VideoPlayer: React.FC = () => {
           </button>
         ) : (
           <button
-            onClick={() => dispatch(resetVideoState())}
+            onClick={() => dispatch(setDisconnected())}
             className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold transition"
           >
             Next / Stop
