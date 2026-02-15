@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import ControlPanel from './components/ControlPanel';
 import DashboardNavbar from './components/DashboardNavbar';
-import VideoGrid from './components/video/VideoGrid'; // Imported new component
+import VideoGrid from './components/video/VideoGrid';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import ConnectionSidebar from './components/chat/ConnectionSidebar';
 // Modals
 import GenderModal from './components/modals/GenderModal';
 import { 
@@ -13,82 +13,91 @@ import {
 } from './components/modals';
 import InviteModal from './components/modals/InviteModal';
 import ChatSidebar from './components/chat/ChatSidebar';
-
+import VibeSelector from './components/interests/VibeSelector';
 const DashboardPage: React.FC = () => {
   const [isSquadMode, setIsSquadMode] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [selectedGender, setSelectedGender] = useState('both');
-const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  
+  // Status comes from your WebRTC hook: "idle" | "searching" | "connecting" | "connected"
   const { localStream, remoteStream, status, startSearching, cleanup } = useWebRTC();
-const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
-const handleSendMessage = (text: string) => {
-  setMessages(prev => [...prev, { id: Date.now().toString(), text, sender: 'me' }]);
-  // Here you would also emit the socket event
-};
+  const handleSendMessage = (text: string) => {
+    setMessages(prev => [...prev, { id: Date.now().toString(), text, sender: 'me' }]);
+    // socket.emit('chat_message', text); // Integration point
+  };
+
   const handleToggleInterest = (id: string) => {
     setSelectedInterests(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
+
   return (
     <div className="h-screen w-full bg-[#6366f1] flex flex-col overflow-hidden relative">
       <DashboardNavbar onOpenModal={setActiveModal} activeModal={activeModal} />
 
-      <div className="flex-1 flex overflow-hidden p-4 lg:p-6 gap-6 relative">
+      <main className="flex-1 flex overflow-hidden p-4 lg:p-6 gap-6 relative">
         
-        {/* MODULAR VIDEO GRID */}
-        <VideoGrid 
-          isSquadMode={isSquadMode}
-          remoteStream={remoteStream}
-          localStream={localStream}
-          status={status}
-          onNext={startSearching}
-          onToggleTheater={() => setIsTheaterMode(!isTheaterMode)}
-          isTheaterMode={isTheaterMode}
-          onInvite={() => setActiveModal('invite')} // Set modal state
-          selectedInterests={selectedInterests}
-    onToggleInterest={handleToggleInterest}
-    onLocalStreamUpdate={(newStream) => {
-             console.log("New stream received from flip:", newStream);
-             // If your useWebRTC hook has a way to set the stream, call it here
-          }}
-        />
-{/* SIDEBAR: Only visible on Desktop (lg) */}
-  {!isTheaterMode && (
-    <div className="hidden lg:block w-[380px] h-full transition-all duration-500">
-      <ChatSidebar 
-        messages={messages} 
-        onSendMessage={handleSendMessage} 
-      />
-    </div>
-  )}
-        {/* SIDEBAR: Slides out via AnimatePresence */}
-        <AnimatePresence>
+        {/* 1. MODULAR VIDEO GRID (Main Content) */}
+        <div className="flex-1 min-w-0 h-full">
+          <VideoGrid 
+            isSquadMode={isSquadMode}
+            remoteStream={remoteStream}
+            localStream={localStream}
+            status={status}
+            onNext={startSearching}
+            onToggleTheater={() => setIsTheaterMode(!isTheaterMode)}
+            isTheaterMode={isTheaterMode}
+            onInvite={() => setActiveModal('invite')}
+            selectedInterests={selectedInterests}
+            onToggleInterest={handleToggleInterest}
+            onLocalStreamUpdate={(newStream) => {
+               console.log("Stream updated:", newStream);
+            }}
+          />
+        </div>
+
+        {/* 2. DYNAMIC SIDEBAR (The "Third Panel") */}
+       <AnimatePresence mode="wait">
           {!isTheaterMode && (
             <motion.div 
+              // Key ensures smooth transition when switching components
+              key={status === 'idle' ? 'idle-panel' : 'active-session-panel'}
               initial={{ x: 450, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 450, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 180 }}
-              className="hidden lg:block w-[400px]"
+              className="hidden lg:block w-[380px] h-full"
             >
-              <ControlPanel 
-                status={status}
-                onStart={startSearching}
-                onStop={cleanup}
-                onOpenGender={() => setActiveModal('gender')}
-                selectedGender={selectedGender}
-                isSquadMode={isSquadMode}
-                setSquadMode={setIsSquadMode}
-              />
+              {status === 'idle' ? (
+                /* SCREENSHOT 2: Rightmost Start Panel */
+                <ControlPanel 
+                  status={status}
+                  onStart={startSearching}
+                  onStop={cleanup}
+                  onOpenGender={() => setActiveModal('gender')}
+                  selectedGender={selectedGender}
+                  isSquadMode={isSquadMode}
+                  setSquadMode={setIsSquadMode}
+                />
+              ) : (
+                /* SCREENSHOT 1 & 3: The Connecting/Chat Panel */
+                <ConnectionSidebar 
+                  status={status}
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </main>
 
-      {/* Floating Exit Button */}
+      {/* Floating Exit Button for Theater Mode */}
       <AnimatePresence>
         {isTheaterMode && (
           <motion.button 
@@ -106,12 +115,8 @@ const handleSendMessage = (text: string) => {
       {/* MODAL LAYER */}
       <div className="relative z-[100]">
         <AnimatePresence>
-
-          {/* New Invite Modal Rendering */}
-          {activeModal === 'invite' && (
-            <InviteModal onClose={() => setActiveModal(null)} />
-          )}
-         {activeModal === 'gender' && (
+          {activeModal === 'invite' && <InviteModal onClose={() => setActiveModal(null)} />}
+          {activeModal === 'gender' && (
             <GenderModal 
               currentGender={selectedGender}
               onClose={() => setActiveModal(null)}
@@ -121,7 +126,6 @@ const handleSendMessage = (text: string) => {
               }}
             />
           )}
-
           {activeModal === 'safety' && <SafetyModal onClose={() => setActiveModal(null)} />}
           {activeModal === 'search' && <SearchModal onClose={() => setActiveModal(null)} />}
           {activeModal === 'plus' && <PlusModal onClose={() => setActiveModal(null)} />}

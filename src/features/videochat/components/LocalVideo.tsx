@@ -52,8 +52,13 @@ const LocalVideo: React.FC<LocalVideoProps> = ({ stream, onStreamUpdate }) => {
         </div>
       )}
       
-      <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-lg border border-white/5">
-        <p className="text-[10px] font-black text-white uppercase italic tracking-widest">You</p>
+     {/* THE "YOU" BADGE (Matches image_f3b10a.png) */}
+      <div className="absolute bottom-6 left-6">
+        <div className="bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-xl">
+          <span className="text-white text-[10px] font-black italic tracking-tighter uppercase">
+            YOU
+          </span>
+        </div>
       </div>
     </div>
   );

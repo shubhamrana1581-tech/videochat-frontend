@@ -1,7 +1,8 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import StrangerVideo from '../StrangerVideo';
 import LocalVideo from '../LocalVideo';
+import ActiveMatchOverlay from './ActiveMatchOverlay';
 
 interface VideoGridProps {
   isSquadMode: boolean;
@@ -10,11 +11,11 @@ interface VideoGridProps {
   status: any;
   onNext: () => void;
   onToggleTheater: () => void;
-  onInvite: () => void; // New prop for triggering the modal
+  onInvite: () => void;
   isTheaterMode: boolean;
   selectedInterests: string[];
   onToggleInterest: (id: string) => void;
-onLocalStreamUpdate: (stream: MediaStream) => void;
+  onLocalStreamUpdate: (stream: MediaStream) => void;
 }
 
 const VideoGrid: React.FC<VideoGridProps> = ({
@@ -30,6 +31,9 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   onToggleInterest,
   onLocalStreamUpdate
 }) => {
+  // Logic to determine if we show the monkey facts and "Both/Quit" buttons
+  const showOverlay = status === 'searching' || status === 'connecting';
+
   return (
     <motion.div 
       layout
@@ -37,6 +41,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
         isSquadMode ? 'grid-cols-2 grid-rows-2' : 'grid-cols-1 md:grid-cols-2'
       }`}
     >
+      {/* 1. STRANGER VIDEO / MIDDLE PANEL AREA */}
       <div className="relative rounded-[2.5rem] overflow-hidden bg-black shadow-2xl border-4 border-white/10">
         <StrangerVideo 
           stream={remoteStream} 
@@ -47,14 +52,30 @@ const VideoGrid: React.FC<VideoGridProps> = ({
           selectedInterests={selectedInterests}
           onToggleInterest={onToggleInterest}
         />
+
+        {/* This overlay handles the Monkey.app style facts and controls */}
+        <AnimatePresence>
+          {showOverlay && (
+            <ActiveMatchOverlay 
+              status={status} 
+              onQuit={onNext} 
+              onGenderClick={() => {
+                /* This maintains segregation by allowing the overlay to trigger parent logic */
+              }}
+            />
+          )}
+        </AnimatePresence>
       </div>
-<div className="relative rounded-[2.5rem] overflow-hidden bg-[#12101f] shadow-2xl border-4 border-white/10">
+
+      {/* 2. LOCAL VIDEO AREA */}
+      <div className="relative rounded-[2.5rem] overflow-hidden bg-[#12101f] shadow-2xl border-4 border-white/10">
         <LocalVideo 
           stream={localStream} 
           onStreamUpdate={onLocalStreamUpdate} 
         />
       </div>
 
+      {/* 3. SQUAD MODE SLOTS */}
       {isSquadMode && (
         <>
           <motion.div 
@@ -66,7 +87,6 @@ const VideoGrid: React.FC<VideoGridProps> = ({
             <p className="text-white/20 text-[10px] font-black uppercase tracking-widest">Waiting for Friend</p>
           </motion.div>
 
-          {/* This slot now triggers the invite modal */}
           <motion.div 
             onClick={onInvite}
             initial={{ opacity: 0, scale: 0.9 }}
