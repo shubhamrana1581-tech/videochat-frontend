@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { Gift, Send } from 'lucide-react';
+import { Gift } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import GiftPanel from './GiftPanel'; // Imported segregated component
 
 interface ChatSidebarProps {
   messages: any[];
   onSendMessage: (text: string) => void;
+  onSendGiftToVideo: (emoji: string) => void;
 }
 
-const ChatSidebar: React.FC<ChatSidebarProps> = ({ messages, onSendMessage }) => {
+const ChatSidebar: React.FC<ChatSidebarProps> = ({ messages, onSendMessage, onSendGiftToVideo }) => {
   const [inputValue, setInputValue] = useState("");
+  const [showGiftPanel, setShowGiftPanel] = useState(false);
 
   const handleSend = () => {
     if (inputValue.trim()) {
@@ -16,9 +20,14 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ messages, onSendMessage }) =>
     }
   };
 
+  const handleGiftSend = (emoji: string) => {
+    onSendGiftToVideo(emoji); // Pass the gift emoji up
+    setShowGiftPanel(false); // Close panel after sending
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#7c7fff] relative">
-      {/* 1. TOP TABS (The "S" and "O" circles from Screenshot 5) */}
+      {/* 1. TOP TABS */}
       <div className="flex p-2 gap-1 bg-black/5">
         <button className="flex-1 h-10 bg-white/20 rounded-xl flex items-center justify-center border border-white/10">
           <div className="w-6 h-6 bg-[#ffff00] rounded-full flex items-center justify-center text-[10px] font-black text-black">S</div>
@@ -51,8 +60,14 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ messages, onSendMessage }) =>
         )}
       </div>
 
-      {/* 3. INPUT AREA (As seen in Screenshot 2 & 4) */}
-      <div className="p-4 pb-6 bg-gradient-to-t from-black/20 to-transparent">
+      {/* 3. INPUT AREA with Gift Panel Integration */}
+      <div className="p-4 pb-6 bg-gradient-to-t from-black/20 to-transparent relative">
+        <AnimatePresence>
+          {showGiftPanel && (
+            <GiftPanel onSendGift={handleGiftSend} onClose={() => setShowGiftPanel(false)} />
+          )}
+        </AnimatePresence>
+
         <div className="relative flex items-center">
           <input 
             type="text"
@@ -63,8 +78,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ messages, onSendMessage }) =>
             className="w-full bg-white/10 border border-white/10 rounded-full py-4 px-6 pr-16 text-white placeholder:text-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-[#ffff00]/50 transition-all"
           />
           
-          {/* Yellow Gift Button */}
-          <button className="absolute right-2 w-10 h-10 bg-[#ffff00] rounded-full flex items-center justify-center text-black shadow-lg hover:scale-110 active:scale-95 transition-all">
+          <button 
+            onClick={() => setShowGiftPanel(!showGiftPanel)}
+            className={`absolute right-2 w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all ${
+              showGiftPanel ? 'bg-white text-black' : 'bg-[#ffff00] text-black'
+            }`}
+          >
             <Gift size={20} fill="currentColor" />
           </button>
         </div>

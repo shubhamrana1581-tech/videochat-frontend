@@ -39,12 +39,12 @@ const VibeSelector: React.FC<VibeSelectorProps> = ({ selectedInterests, onToggle
           return (
             <motion.button
               key={item.id}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => onToggleInterest(item.id)}
               className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black transition-all border ${
                 isActive 
-                  ? 'bg-[#ffff00] border-[#ffff00] text-black shadow-[0_0_20px_rgba(255,255,0,0.2)]' 
+                  ? 'bg-[#ffff00] border-[#ffff00] text-black shadow-[0_10px_20px_rgba(255,255,0,0.2)]' 
                   : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
               }`}
             >

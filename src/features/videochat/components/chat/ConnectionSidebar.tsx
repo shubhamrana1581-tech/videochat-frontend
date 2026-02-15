@@ -5,9 +5,10 @@ interface ConnectionSidebarProps {
   status: string; // "searching" | "connecting" | "connected"
   messages: any[];
   onSendMessage: (text: string) => void;
+  onSendGiftToVideo: (emoji: string) => void;
 }
 
-const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({ status, messages, onSendMessage }) => {
+const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({ status, messages, onSendMessage,onSendGiftToVideo }) => {
   const isConnected = status === 'connected';
 
   return (
@@ -27,7 +28,8 @@ const ConnectionSidebar: React.FC<ConnectionSidebarProps> = ({ status, messages,
       <div className="flex-1 overflow-hidden">
         {isConnected ? (
           /* ONLY SHOW CHAT SECTION WHEN CONNECTED */
-          <ChatSidebar messages={messages} onSendMessage={onSendMessage} />
+          <ChatSidebar messages={messages} onSendMessage={onSendMessage}
+          onSendGiftToVideo={onSendGiftToVideo} />
         ) : (
           /* SEARCHING STATE: Empty purple panel (Matches Screenshot 1, 3, 4) */
           <div className="h-full w-full flex flex-col items-center justify-center p-10">

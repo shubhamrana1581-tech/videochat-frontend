@@ -14,7 +14,7 @@ interface VideoGridProps {
   onInvite: () => void;
   isTheaterMode: boolean;
   selectedInterests: string[];
-  onToggleInterest: (id: string) => void;
+//   onToggleInterest: (id: string) => void;
   onLocalStreamUpdate: (stream: MediaStream) => void;
 }
 
@@ -28,7 +28,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   onInvite,
   isTheaterMode,
   selectedInterests,
-  onToggleInterest,
+//   onToggleInterest,
   onLocalStreamUpdate
 }) => {
   // Logic to determine if we show the monkey facts and "Both/Quit" buttons
@@ -50,7 +50,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
           onToggleTheater={onToggleTheater}
           isTheaterMode={isTheaterMode}
           selectedInterests={selectedInterests}
-          onToggleInterest={onToggleInterest}
+       
         />
 
         {/* This overlay handles the Monkey.app style facts and controls */}
