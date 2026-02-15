@@ -1,11 +1,15 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { useCameraFlip } from '../hooks/useCameraFlip';
 
-interface Props {
+interface LocalVideoProps {
   stream: MediaStream | null;
+  onStreamUpdate?: (stream: MediaStream) => void; // Added to handle the flip update
 }
 
-const LocalVideo: React.FC<Props> = ({ stream }) => {
+const LocalVideo: React.FC<LocalVideoProps> = ({ stream, onStreamUpdate }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { toggleCamera } = useCameraFlip(stream);
 
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -13,17 +17,43 @@ const LocalVideo: React.FC<Props> = ({ stream }) => {
     }
   }, [stream]);
 
+  const handleFlip = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onStreamUpdate) {
+      toggleCamera(onStreamUpdate);
+    }
+  };
+
   return (
-    <div className="relative w-full h-full bg-zinc-900 rounded-[2.5rem] overflow-hidden border border-white/10 group">
-      <video 
-        ref={videoRef} 
-        autoPlay 
-        muted 
-        playsInline 
-        className="w-full h-full object-cover scale-x-[-1]" 
-      />
-      <div className="absolute bottom-6 right-6 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
-        <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">You</span>
+    <div className="relative w-full h-full bg-[#12101f] flex items-center justify-center overflow-hidden group">
+      {stream ? (
+        <>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover mirror-mode"
+          />
+          
+          {/* Flip Camera Button - Segregated UI */}
+          <button
+            onClick={handleFlip}
+            className="absolute bottom-6 right-6 p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white hover:bg-[#ffff00] hover:text-black transition-all border border-white/10 opacity-0 group-hover:opacity-100 lg:opacity-100 shadow-xl"
+            title="Flip Camera"
+          >
+            <RefreshCw size={20} />
+          </button>
+        </>
+      ) : (
+        <div className="flex flex-col items-center opacity-20">
+          <div className="w-12 h-12 rounded-full border-2 border-dashed border-white mb-2 animate-spin" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-white">Camera Off</p>
+        </div>
+      )}
+      
+      <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-lg border border-white/5">
+        <p className="text-[10px] font-black text-white uppercase italic tracking-widest">You</p>
       </div>
     </div>
   );
