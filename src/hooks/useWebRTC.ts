@@ -1,103 +1,87 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { socket } from '../services/socket'; // Ensure this points to your socket service
-import { useAppDispatch } from '../app/hook'; // Or wherever your typed hook is
-import { setConnected } from '../features/videochat/videoSlice';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { socket } from '../services/socket'; // Your socket instance
+import type { ChatStatus } from '../features/videochat/types';
 
-const rtcConfig = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' }, // Free Google STUN server
-  ],
-};
+export const useWebRTC = () => {
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [status, setStatus] = useState<ChatStatus>('idle');
+  const [error, setError] = useState<string | null>(null);
 
-export const useWebRTC = (localStream: MediaStream | null, setRemoteStream: (stream: MediaStream) => void) => {
-  const dispatch = useAppDispatch();
-  const peerConnection = useRef<RTCPeerConnection | null>(null);
+  const pc = useRef<RTCPeerConnection | null>(null);
 
-  // --- Core Function: Create the Connection Object ---
-  const createPeerConnection = useCallback(() => {
-    // If a connection already exists, close it first (for "Next" functionality)
-    if (peerConnection.current) {
-      peerConnection.current.close();
-    }
-
-    const pc = new RTCPeerConnection(rtcConfig);
-    peerConnection.current = pc;
-
-    // 1. Handle ICE Candidates (Network Info)
-    // When the browser finds a network path, send it to the stranger
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('ice-candidate', event.candidate);
-      }
-    };
-
-    // 2. Handle Incoming Remote Stream
-    // When the stranger's video arrives, update the UI
-    pc.ontrack = (event) => {
-      if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
-      }
-    };
-
-    // 3. Add Local Stream to Connection
-    // Send your video to the stranger
-    if (localStream) {
-      localStream.getTracks().forEach((track) => {
-        pc.addTrack(track, localStream);
+  const startCamera = async (): Promise<MediaStream | null> => {
+    setStatus('requesting');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
       });
+      setLocalStream(stream);
+      return stream;
+    } catch (err) {
+      setError('Camera Access Denied');
+      setStatus('error');
+      return null;
     }
-
-    return pc;
-  }, [localStream, setRemoteStream]);
-
-  // --- Socket Event Listeners ---
-  useEffect(() => {
-    // A. Handle "Offer" (You are the Receiver)
-    socket.on('offer', async (offer) => {
-      const pc = createPeerConnection();
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      
-      socket.emit('answer', answer);
-      dispatch(setConnected(socket.id!)); // Update Redux state
-    });
-
-    // B. Handle "Answer" (You are the Caller)
-    socket.on('answer', async (answer) => {
-      if (peerConnection.current) {
-        await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
-        dispatch(setConnected(socket.id!));
-      }
-    });
-
-    // C. Handle "ICE Candidate" (Connectivity)
-    socket.on('ice-candidate', async (candidate) => {
-      if (peerConnection.current) {
-        try {
-          await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (e) {
-          console.error("Error adding received ice candidate", e);
-        }
-      }
-    });
-
-    // Cleanup listeners on unmount
-    return () => {
-      socket.off('offer');
-      socket.off('answer');
-      socket.off('ice-candidate');
-    };
-  }, [createPeerConnection, dispatch]);
-
-  // --- Function to initiate a call (The "Caller") ---
-  const startCall = async () => {
-    const pc = createPeerConnection();
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.emit('offer', offer);
   };
 
-  return { startCall, peerConnection };
+  const cleanup = useCallback(() => {
+    if (pc.current) {
+      pc.current.close();
+      pc.current = null;
+    }
+    setRemoteStream(null);
+  }, []);
+
+  const startSearching = useCallback(async () => {
+    let currentStream = localStream;
+    if (!currentStream) {
+      currentStream = await startCamera();
+      if (!currentStream) return;
+    }
+
+    cleanup();
+    setStatus('searching');
+    socket.emit('find-stranger');
+  }, [localStream, cleanup]);
+
+  // Handle Match Found
+  useEffect(() => {
+    const handleMatch = async () => {
+      setStatus('connected');
+      pc.current = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+
+      // Add local tracks
+      localStream?.getTracks().forEach(track => {
+        if (localStream && pc.current) pc.current.addTrack(track, localStream);
+      });
+
+      // Listen for remote tracks
+      pc.current.ontrack = (event) => {
+        setRemoteStream(event.streams[0]);
+      };
+
+      // Mocking match behavior for UI development
+      if (!remoteStream) {
+        setRemoteStream(new MediaStream());
+      }
+    };
+
+    socket.on('match-found', handleMatch);
+    socket.on('stranger-disconnected', () => {
+      setStatus('disconnected');
+      cleanup();
+      setTimeout(() => startSearching(), 1500);
+    });
+
+    return () => {
+      socket.off('match-found');
+      socket.off('stranger-disconnected');
+    };
+  }, [localStream, startSearching, cleanup, remoteStream]);
+
+  return { localStream, remoteStream, status, error, startSearching, cleanup };
 };

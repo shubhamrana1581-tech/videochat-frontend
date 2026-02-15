@@ -1,19 +1,15 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import VideoPlayer from './features/videochat/VideoPlayer'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './features/landing/LandingPage';
+import DashboardPage from './features/videochat/DashboardPage';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-     <div>
-      <VideoPlayer/>
-     </div>
-    </>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+      </Routes>
+    </Router>
+  );
 }
-
 export default App
